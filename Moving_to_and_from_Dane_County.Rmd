@@ -1,0 +1,173 @@
+---
+title: "Dane County Migration Flows"
+description: |
+  The `tidycensus` package got an exciting new function
+author:
+  - name: Harald Kliems 
+    orcid_id: 0000-0003-2542-0047
+    url: https://haraldkliems.netlify.app/
+date: "`r Sys.Date()`"
+repository_url: https://github.com/vgXhc/dane_county_migration
+compare_updates_url:
+creative_commons: CC BY-SA
+preview: data/screenshot_flow_map.png
+output: 
+  distill::distill_article:
+    code_folding: TRUE
+    self-contained: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I'm a heavy user of the [`tidycensus`](https://walker-data.com/tidycensus/) package, and just yesterday I learned that its development version has a great new feature: You can now [retrieve migration flows for counties and metro areas](https://walker-data.com/tidycensus/articles/other-datasets.html#migration-flows-1)! Of course I needed to test this out, looking at Madison (or to be precise: Dane County). Our city and region have been steadily growing, and so where have people been moving from? And where do the people go who leave? It now only takes a few lines of code to find out. 
+
+<aside> Note that you need the install the Github version of `tidycensus` for this to work. To do so, use `remotes::install_github("https://github.com/walkerke/tidycensus/")`.</aside>
+
+
+```{r get-data}
+library(tidycensus)
+library(tidyverse)
+library(mapdeck)
+dane_flows <- get_flows(
+  geography = "county",
+  state = "WI",
+  county = "Dane",
+  year = 2018, #this is the latest data available currently
+  geometry = TRUE
+  )
+```
+
+
+# Where people are moving from
+
+```{r}
+top_move_in_table <- dane_flows %>% 
+  filter(variable == "MOVEDIN") %>% 
+  slice_max(n = 25, order_by = estimate) %>% 
+  mutate(
+    width = estimate / 400,
+    tooltip = paste0(
+      scales::comma(estimate * 5, 1),
+      " people moved from ", FULL2_NAME,
+      " to ", FULL1_NAME, " between 2014 and 2018"
+      )
+    )
+rmarkdown::paged_table(top_move_in_table %>% select(FULL2_NAME, estimate))
+```
+
+The top county for in-migration is actually a continent: Asia. And another continent, Europe, also makes the top-10. Most of the counties people are coming from are in-state, and probably a good portion is students moving to attend UW-Madison. Cook County -- in other words: Chicago -- takes first spot for out-of-state mover, and Hennepin County (Minneapolis) follows closely. Farther away, there is Hamilton County in Ohio (Cincinatti), Middlesex County in Massachussetts, just outside Boston, and one West Coast county: San Diego, California. 
+
+We can map these flows, but for non-US origins/destinations, no geometry is provided. If we wanted to map these, we'd manually have to add these. For this article, we'll filter them out.
+
+```{r}
+
+top_move_in_table %>% 
+  filter(!is.na(GEOID2)) %>% 
+  mapdeck(style = mapdeck_style("light"), pitch = 45) %>% 
+  add_arc(
+    origin = "centroid1",
+    destination = "centroid2",
+    stroke_width = "width",
+    auto_highlight = TRUE,
+    highlight_colour = "#8c43facc",
+    tooltip = "tooltip"
+  ) 
+
+```
+
+# Where people are moving to
+
+```{r}
+top_move_out_table <- dane_flows %>% 
+  filter(variable == "MOVEDOUT") %>% 
+  slice_max(n = 25, order_by = estimate) %>% 
+  mutate(
+    width = estimate / 400,
+    tooltip = paste0(
+      scales::comma(estimate * 5, 1),
+      " people moved from ", FULL1_NAME,
+      " to ", FULL2_NAME, " between 2014 and 2018"
+      )
+    )
+
+rmarkdown::paged_table(top_move_out_table %>% select(FULL2_NAME, estimate))
+```
+
+One limitation of the data is that for out-migration (and consequently net migration), there is no data for people leaving the US -- someone who has moved to South America won't receive an American Community Survey. With that in mind, destinations are spread more widely. The West Coast draws heavily with Seattle, the Bay Area, Los Angeles, and San Diego. Austin (Texas), and of course New York City, and the head scratcher of Harrisburg (Pennsylvania). Closer by, the same places that show up for in-migration also feature here: Minneapolis, Chicago, Milwaukee, and various counties across Wisconsin.   
+
+```{r}
+top_move_out_table %>% 
+  filter(!is.na(GEOID2)) %>% 
+  mapdeck(style = mapdeck_style("light"), pitch = 45) %>% 
+  add_arc(
+    origin = "centroid1",
+    destination = "centroid2",
+    stroke_width = "width",
+    auto_highlight = TRUE,
+    highlight_colour = "#8c43facc",
+    tooltip = "tooltip"
+  ) 
+```
+
+# Net migration
+The data also include a variable for net migration, `MOVEDNET`.
+
+```{r}
+top_move_net_table <- dane_flows %>% 
+  filter(variable == "MOVEDNET") %>% 
+  slice_max(n = 25, order_by = estimate) %>% 
+  mutate(
+    width = estimate / 400,
+    tooltip = paste0(
+      scales::comma(estimate * 5, 1),
+      " more people moved from ", FULL2_NAME,
+      " to ", FULL1_NAME, " between 2014 and 2018 than in the reverse direction"
+      )
+    )
+rmarkdown::paged_table(top_move_net_table %>% select(FULL2_NAME, estimate))
+```
+The numbers here are smaller, but you can see that Waukesha, which was at the top of the _total_ in-migration list also tops the _net_ migration. That is, 1445 more people moved from Waukesha to Dane County than in the other direction. Overall, the numbers here are much smaller, and the maps looks a little different again.
+
+```{r}
+top_move_net_table %>% 
+  filter(!is.na(GEOID2)) %>% 
+  mapdeck(style = mapdeck_style("light"), pitch = 45) %>% 
+  add_arc(
+    origin = "centroid1",
+    destination = "centroid2",
+    stroke_width = "width",
+    auto_highlight = TRUE,
+    highlight_colour = "#8c43facc",
+    tooltip = "tooltip"
+  ) 
+```
+# Age groups
+The UW-Madison is probably a big driver of migration in Dane County, and we can look at this by grouping in-migration by age group.
+
+<aside>Note that this is 2011--2015 data, not the 2014--2018 data used in the rest of the article.</aside>
+
+```{r}
+age_flows <- get_flows(
+  geography = "county",
+  county = "Dane",
+  state = "WI",
+  breakdown = "AGE",
+  breakdown_labels = TRUE,
+  year = 2015
+  )
+
+
+age_flows %>% 
+  filter(variable == "MOVEDIN", AGE_label != "All ages") %>% 
+  group_by(AGE_label, FULL2_NAME) %>% 
+  summarize(estimate) %>% 
+  slice_max(n = 5, order_by = estimate) %>% 
+  arrange(AGE_label,-estimate) %>% 
+  DT::datatable(rownames = FALSE)
+
+```
+These are the top-5 origins for each age group. If you sort by the estimate column, you see the largest in-migrant group are 20--24 year-olds from Asia, and overall the top groups are indeed heavily undergraduate- and graduate-student aged. Electronic health record company Epic, one of the largest employers in the country, is probably driving some of these numbers as wel. Sort by `AGE_label` to see the top origins for each age group.
+
+
