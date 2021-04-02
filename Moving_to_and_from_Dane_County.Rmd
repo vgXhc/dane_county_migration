@@ -10,6 +10,7 @@ date: "`r Sys.Date()`"
 repository_url: https://github.com/vgXhc/dane_county_migration
 compare_updates_url:
 creative_commons: CC BY-SA
+base_url: https://haraldkliems.netlify.app/posts/dane-county-migration-flows/
 preview: img/screenshot_flow_map.png
 output: 
   distill::distill_article:
