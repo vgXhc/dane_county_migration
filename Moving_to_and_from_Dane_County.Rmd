@@ -21,6 +21,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+![Outmigration from Dane County](img/screenshot_flow_map.png) 
+
 I'm a heavy user of the [`tidycensus`](https://walker-data.com/tidycensus/) package, and just yesterday I learned that its development version has a great new feature: You can now [retrieve migration flows for counties and metro areas](https://walker-data.com/tidycensus/articles/other-datasets.html#migration-flows-1)! Of course I needed to test this out, looking at Madison (or to be precise: Dane County). Our city and region have been steadily growing, and so where have people been moving from? And where do the people go who leave? It now only takes a few lines of code to find out. 
 
 <aside> Note that you need the install the Github version of `tidycensus` for this to work. To do so, use `remotes::install_github("https://github.com/walkerke/tidycensus/")`.</aside>
