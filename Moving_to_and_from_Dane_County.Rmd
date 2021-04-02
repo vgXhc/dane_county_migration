@@ -10,19 +10,17 @@ date: "`r Sys.Date()`"
 repository_url: https://github.com/vgXhc/dane_county_migration
 compare_updates_url:
 creative_commons: CC BY-SA
-base_url: https://haraldkliems.netlify.app/posts/dane-county-migration-flows/
 preview: img/screenshot_flow_map.png
 output: 
   distill::distill_article:
     code_folding: TRUE
-    self-contained: false
+    self_contained: false
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-![Outmigration from Dane County](img/screenshot_flow_map.png) 
 
 I'm a heavy user of the [`tidycensus`](https://walker-data.com/tidycensus/) package, and just yesterday I learned that its development version has a great new feature: You can now [retrieve migration flows for counties and metro areas](https://walker-data.com/tidycensus/articles/other-datasets.html#migration-flows-1)! Of course I needed to test this out, looking at Madison (or to be precise: Dane County). Our city and region have been steadily growing, and so where have people been moving from? And where do the people go who leave? It now only takes a few lines of code to find out. 
 
